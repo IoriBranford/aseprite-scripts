@@ -16,13 +16,13 @@
 ---@field filename string
 ---@field frametime number in seconds
 
+local NormalSpriteSize = 64
+local NormalSheetWidth = 832
+local NormalSheetHeight = 1344
+
 ---@param t ImportLPCCharacterArgs
 local function ImportLPCCharacter(t)
     local sheet = t.sheet
-
-    local NormalSpriteSize = 64
-    local NormalSheetWidth = 832
-    local NormalSheetHeight = 1344
 
     if sheet.height < NormalSheetHeight or sheet.width < NormalSheetWidth then
         app.alert("Too small.")
@@ -46,26 +46,23 @@ local function ImportLPCCharacter(t)
         Fall = { s = 64, x = 0, y = 1280, w = 384, h = 64, parts = { Knees = { 0, 2 }, Flat = { 3, 5 } } },
     }
 
-    -- determine the canvas size
-    local spriteSize
-    if sheet.height >= HugeSheetHeight then
-        spriteSize = HugeSpriteSize
-        Animations.Swing = { s = 192, x = 0, y = 1344, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
-        Animations.RevSwing = { s = 192, x = 0, y = 2112, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
-        Animations.Thrust = { s = 192, x = 0, y = 2880, w = 1536, h = 768, parts = { Windup = { 0, 3 }, Attack = { 4, 7 } } }
-        Animations[#Animations+1] = "RevSwing"
-    elseif sheet.height >= BigSheetHeight then
-        spriteSize = BigSpriteSize
+    local spriteSize = NormalSpriteSize
+    -- if sheet.height >= HugeSheetHeight then
+    --     spriteSize = HugeSpriteSize
+    --     Animations.Swing = { s = 192, x = 0, y = 1344, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
+    --     Animations.RevSwing = { s = 192, x = 0, y = 2112, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
+    --     Animations.Thrust = { s = 192, x = 0, y = 2880, w = 1536, h = 768, parts = { Windup = { 0, 3 }, Attack = { 4, 7 } } }
+    --     Animations[#Animations+1] = "RevSwing"
+    -- elseif sheet.height >= BigSheetHeight then
+    --     spriteSize = BigSpriteSize
 
-        if sheet.width >= BigWalkWidth then
-            Animations.Stand = { s = 128, x = 0, y = 1344, w = 128, h = 512 }
-            Animations.Walk = { s = 128, x = 128, y = 1344, w = 1024, h = 512 }
-        else
-            Animations.Swing = { s = 128, x = 0, y = 1344, w = 768, h = 512, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
-        end
-    else
-        spriteSize = NormalSpriteSize
-    end
+    --     if sheet.width >= BigWalkWidth then
+    --         Animations.Stand = { s = 128, x = 0, y = 1344, w = 128, h = 512 }
+    --         Animations.Walk = { s = 128, x = 128, y = 1344, w = 1024, h = 512 }
+    --     else
+    --         Animations.Swing = { s = 128, x = 0, y = 1344, w = 768, h = 512, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
+    --     end
+    -- end
 
     local frameDuration = t.frametime
     local sprite = Sprite(spriteSize, spriteSize)
@@ -116,8 +113,19 @@ local function ImportLPCCharacter(t)
     end
 end
 
-ImportLPCCharacter({
+local filename = app.fs.filePathAndTitle(app.sprite.filename)..".ase"
+local extfilename = app.fs.filePathAndTitle(app.sprite.filename).."-ext.ase"
+local t = {
     sheet = app.image,
-    filename = app.fs.filePathAndTitle(app.sprite.filename)..".ase",
+    filename = filename,
     frametime = .05
-})
+}
+ImportLPCCharacter(t)
+
+local sheet = t.sheet
+if sheet.height > NormalSheetHeight then
+    local extSourceRect = Rectangle(0, NormalSheetHeight, sheet.width, sheet.height - NormalSheetHeight)
+    local extSprite = Sprite(extSourceRect.w, extSourceRect.h)
+    extSprite.filename = extfilename
+    extSprite:newCel(extSprite.layers[1], extSprite.frames[1], Image(sheet, extSourceRect), Point(0, 0))
+end
