@@ -36,6 +36,7 @@ local function ImportLPCCharacter(t)
 
     ---@type {[string]:LPCAnimation}
     local Animations = {
+        "Stand", "Walk", "Fall", "Swing", "Thrust", "Shoot", "Cast",
         Cast = { s = 64, x = 0, y = 0, w = 448, h = 256 },
         Thrust = { s = 64, x = 0, y = 256, w = 512, h = 256, parts = { Windup = { 0, 3 }, Attack = { 4, 7 } } },
         Stand = { s = 64, x = 0, y = 512, w = 64, h = 256 },
@@ -52,6 +53,7 @@ local function ImportLPCCharacter(t)
         Animations.Swing = { s = 192, x = 0, y = 1344, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
         Animations.RevSwing = { s = 192, x = 0, y = 2112, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
         Animations.Thrust = { s = 192, x = 0, y = 2880, w = 1536, h = 768, parts = { Windup = { 0, 3 }, Attack = { 4, 7 } } }
+        Animations[#Animations+1] = "RevSwing"
     elseif sheet.height >= BigSheetHeight then
         spriteSize = BigSpriteSize
 
@@ -101,7 +103,8 @@ local function ImportLPCCharacter(t)
         end)
     end
 
-    for basename, animation in pairs(Animations) do
+    for _, basename in ipairs(Animations) do
+        local animation = Animations[basename]
         local rows = math.floor(animation.h / animation.s)
         if rows <= 1 then
             importAnimation(basename, animation, 0, "")
