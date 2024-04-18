@@ -106,7 +106,7 @@ local function ImportLPCCharacter(t)
         if rows <= 1 then
             importAnimation(basename, animation, 0, "")
         else
-            for r = 1, rows do
+            for r = rows, 1, -1 do
                 importAnimation(basename, animation, r-1, rows-r)
             end
         end
