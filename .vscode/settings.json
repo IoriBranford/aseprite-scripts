@@ -1,5 +1,9 @@
 {
     "Lua.workspace.library": [
         "${workspaceRoot}/api"
+    ],
+    "Lua.diagnostics.globals": [
+        "init",
+        "exit"
     ]
 }
