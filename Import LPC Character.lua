@@ -11,42 +11,39 @@
 ---@field h integer
 ---@field parts {[string]: integer[]}?
 
+---@type {[string]:LPCAnimation,[integer]:string}
+local Animations = {
+    "Stand", "Walk", "Fall", "Swing", "Thrust", "Shoot", "Cast",
+    Cast = { s = 64, x = 0, y = 0, w = 448, h = 256 },
+    Thrust = { s = 64, x = 0, y = 256, w = 512, h = 256, parts = { Windup = { 0, 3 }, Attack = { 4, 7 } } },
+    Stand = { s = 64, x = 0, y = 512, w = 64, h = 256 },
+    Walk = { s = 64, x = 64, y = 512, w = 512, h = 256 },
+    Swing = { s = 64, x = 0, y = 768, w = 384, h = 256, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } },
+    Shoot = { s = 64, x = 0, y = 1024, w = 832, h = 256, parts = { Windup = { 0, 8 }, Attack = { 9, 11 } } },
+    Fall = { s = 64, x = 0, y = 1280, w = 384, h = 64, parts = { Knees = { 0, 2 }, Flat = { 3, 5 } } },
+}
+
 ---@class ImportLPCCharacterArgs
 ---@field sheet Image
 ---@field filename string
 ---@field frametime number in seconds
+---@field size integer
+---@field animationsEnabled {[string]:boolean}
 
-local NormalSpriteSize = 64
 local NormalSheetWidth = 832
 local NormalSheetHeight = 1344
 
 ---@param t ImportLPCCharacterArgs
 local function ImportLPCCharacter(t)
     local sheet = t.sheet
+    -- local BigSpriteSize = 128
+    -- local BigWalkWidth = 1152
+    -- local BigSheetHeight = 1856
+    -- local HugeSpriteSize = 192
+    -- local HugeSheetHeight = 3648
 
-    if sheet.height < NormalSheetHeight or sheet.width < NormalSheetWidth then
-        app.alert("Too small.")
-        return
-    end
-    local BigSpriteSize = 128
-    local BigWalkWidth = 1152
-    local BigSheetHeight = 1856
-    local HugeSpriteSize = 192
-    local HugeSheetHeight = 3648
+    local spriteSize = t.size
 
-    ---@type {[string]:LPCAnimation}
-    local Animations = {
-        "Stand", "Walk", "Fall", "Swing", "Thrust", "Shoot", "Cast",
-        Cast = { s = 64, x = 0, y = 0, w = 448, h = 256 },
-        Thrust = { s = 64, x = 0, y = 256, w = 512, h = 256, parts = { Windup = { 0, 3 }, Attack = { 4, 7 } } },
-        Stand = { s = 64, x = 0, y = 512, w = 64, h = 256 },
-        Walk = { s = 64, x = 64, y = 512, w = 512, h = 256 },
-        Swing = { s = 64, x = 0, y = 768, w = 384, h = 256, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } },
-        Shoot = { s = 64, x = 0, y = 1024, w = 832, h = 256, parts = { Windup = { 0, 8 }, Attack = { 9, 11 } } },
-        Fall = { s = 64, x = 0, y = 1280, w = 384, h = 64, parts = { Knees = { 0, 2 }, Flat = { 3, 5 } } },
-    }
-
-    local spriteSize = NormalSpriteSize
     -- if sheet.height >= HugeSheetHeight then
     --     spriteSize = HugeSpriteSize
     --     Animations.Swing = { s = 192, x = 0, y = 1344, w = 1152, h = 768, parts = { Windup = { 0, 2 }, Attack = { 3, 5 } } }
@@ -100,32 +97,77 @@ local function ImportLPCCharacter(t)
         end)
     end
 
+    local enabled = t.animationsEnabled
     for _, basename in ipairs(Animations) do
         local animation = Animations[basename]
-        local rows = math.floor(animation.h / animation.s)
-        if rows <= 1 then
-            importAnimation(basename, animation, 0, "")
-        else
-            for r = rows, 1, -1 do
-                importAnimation(basename, animation, r-1, rows-r)
+        if enabled[basename] then
+            local rows = math.floor(animation.h / animation.s)
+            if rows <= 1 then
+                importAnimation(basename, animation, 0, "")
+            else
+                for r = rows, 1, -1 do
+                    importAnimation(basename, animation, r-1, rows-r)
+                end
             end
         end
     end
 end
 
+local sheet = app.image
+if sheet.height < NormalSheetHeight or sheet.width < NormalSheetWidth then
+    app.alert("Too small.")
+    return
+end
+
 local filename = app.fs.filePathAndTitle(app.sprite.filename)..".ase"
-local extfilename = app.fs.filePathAndTitle(app.sprite.filename).."-ext.ase"
-local t = {
+
+local args = {
     sheet = app.image,
     filename = filename,
-    frametime = .05
+    frametime = .05,
+    size = 64,
+    animationsEnabled = {}
 }
-ImportLPCCharacter(t)
 
-local sheet = t.sheet
-if sheet.height > NormalSheetHeight then
-    local extSourceRect = Rectangle(0, NormalSheetHeight, sheet.width, sheet.height - NormalSheetHeight)
-    local extSprite = Sprite(extSourceRect.w, extSourceRect.h)
-    extSprite.filename = extfilename
-    extSprite:newCel(extSprite.layers[1], extSprite.frames[1], Image(sheet, extSourceRect), Point(0, 0))
+local dialog = Dialog("Import LPC Character")
+dialog:combobox({
+    id = "comboboxSpriteSize",
+    label = "Sprite size",
+    options = {"64", "128", "192"},
+    onchange = function()
+        args.size = tonumber(dialog.data.comboboxSpriteSize)
+    end
+})
+dialog:number({
+    id = "numberFrameTime",
+    label = "Frame time (ms)",
+    text = tostring(math.floor(args.frametime * 1000)),
+    decimals = 0,
+    onchange = function()
+        args.frametime = dialog.data.numberFrameTime / 1000
+    end
+})
+dialog:separator({
+    text = "Animations"
+})
+for _, name in ipairs(Animations) do
+    args.animationsEnabled[name] = true
+
+    dialog:check({
+        id = "check"..name,
+        label = name,
+        selected = true,
+        onclick = function()
+            args.animationsEnabled[name] = dialog.data["check"..name]
+        end
+    })
+    dialog:newrow()
 end
+dialog:button({
+    text = "Import",
+    onclick = function()
+        ImportLPCCharacter(args)
+        dialog:close()
+    end
+})
+dialog:show()
