@@ -73,7 +73,7 @@ local function ImportLPCCharacter(t)
         local dest = Point(spriteSize/2 - animation.s/2, spriteSize/2 - animation.s/2)
         local fromFrameNumber = #frames
         local toFrameNumber = #frames + columns - 1
-        app.transaction("Import Animation "..name, function()
+        app.transaction("Import Animation "..name..dir, function()
             for c = 1, columns do
                 local frame = frames[#frames]
                 frame.duration = frameDuration
@@ -110,6 +110,28 @@ local function ImportLPCCharacter(t)
                 end
             end
         end
+    end
+
+    local extraheight = sheet.height - NormalSheetHeight
+    if extraheight >= spriteSize then
+        local extracols = math.floor(sheet.width / spriteSize)
+        local extrarows = math.floor(extraheight / spriteSize)
+        local sourceRect = Rectangle(0, NormalSheetHeight, spriteSize, spriteSize)
+        app.transaction("Import extra frames", function()
+            for _ = 1, extrarows do
+                for _ = 1, extracols do
+                    local frame = frames[#frames]
+                    frame.duration = frameDuration
+                    local image = Image(sheet, sourceRect)
+                    sprite:newCel(layer, frame, image)
+
+                    sourceRect.x = sourceRect.x + spriteSize
+                    sprite:newEmptyFrame()
+                end
+                sourceRect.y = sourceRect.y + spriteSize
+                sourceRect.x = 0
+            end
+        end)
     end
 end
 
