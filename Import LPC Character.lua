@@ -73,51 +73,49 @@ local function ImportLPCCharacter(t)
         local dest = Point(spriteSize/2 - animation.s/2, spriteSize/2 - animation.s/2)
         local fromFrameNumber = #frames
         local toFrameNumber = #frames + columns - 1
-        app.transaction("Import Animation "..name..dir, function()
-            for c = 1, columns do
-                local frame = frames[#frames]
-                frame.duration = frameDuration
-                local image = Image(sheet, sourceRect)
-                sprite:newCel(layer, frame, image, dest)
+        for _ = 1, columns do
+            local frame = frames[#frames]
+            frame.duration = frameDuration
+            local image = Image(sheet, sourceRect)
+            sprite:newCel(layer, frame, image, dest)
 
-                sourceRect.x = sourceRect.x + animation.s
-                sprite:newEmptyFrame()
-            end
+            sourceRect.x = sourceRect.x + animation.s
+            sprite:newEmptyFrame()
+        end
 
-            local tag = sprite:newTag(fromFrameNumber, toFrameNumber)
-            tag.name = name..dir
+        local tag = sprite:newTag(fromFrameNumber, toFrameNumber)
+        tag.name = name..dir
 
-            local parts = animation.parts
-            if parts then
-                for part, range in pairs(parts) do
-                    tag = sprite:newTag(fromFrameNumber + range[1], fromFrameNumber + range[2])
-                    tag.name = name..part..dir
-                end
-            end
-        end)
-    end
-
-    local enabled = t.animationsEnabled
-    for _, basename in ipairs(Animations) do
-        local animation = Animations[basename]
-        if enabled[basename] then
-            local rows = math.floor(animation.h / animation.s)
-            if rows <= 1 then
-                importAnimation(basename, animation, 0, "")
-            else
-                for r = rows, 1, -1 do
-                    importAnimation(basename, animation, r-1, rows-r)
-                end
+        local parts = animation.parts
+        if parts then
+            for part, range in pairs(parts) do
+                tag = sprite:newTag(fromFrameNumber + range[1], fromFrameNumber + range[2])
+                tag.name = name..part..dir
             end
         end
     end
 
-    local extraheight = sheet.height - NormalSheetHeight
-    if extraheight >= spriteSize then
-        local extracols = math.floor(sheet.width / spriteSize)
-        local extrarows = math.floor(extraheight / spriteSize)
-        local sourceRect = Rectangle(0, NormalSheetHeight, spriteSize, spriteSize)
-        app.transaction("Import extra frames", function()
+    local enabled = t.animationsEnabled
+    app.transaction("Import LPC Character", function()
+        for _, basename in ipairs(Animations) do
+            local animation = Animations[basename]
+            if enabled[basename] then
+                local rows = math.floor(animation.h / animation.s)
+                if rows <= 1 then
+                    importAnimation(basename, animation, 0, "")
+                else
+                    for r = rows, 1, -1 do
+                        importAnimation(basename, animation, r-1, rows-r)
+                    end
+                end
+            end
+        end
+
+        local extraheight = sheet.height - NormalSheetHeight
+        if extraheight >= spriteSize then
+            local extracols = math.floor(sheet.width / spriteSize)
+            local extrarows = math.floor(extraheight / spriteSize)
+            local sourceRect = Rectangle(0, NormalSheetHeight, spriteSize, spriteSize)
             for _ = 1, extrarows do
                 for _ = 1, extracols do
                     local frame = frames[#frames]
@@ -131,8 +129,8 @@ local function ImportLPCCharacter(t)
                 sourceRect.y = sourceRect.y + spriteSize
                 sourceRect.x = 0
             end
-        end)
-    end
+        end
+    end)
 end
 
 local sheet = app.image
