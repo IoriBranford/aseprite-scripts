@@ -147,72 +147,87 @@ local function ImportLPCCharacter(t)
     end)
 end
 
-local sheet = app.image
-if sheet.height < NormalSheetHeight or sheet.width < NormalSheetWidth then
-    app.alert("Too small.")
-    return
-end
-
-local filename = app.fs.filePathAndTitle(app.sprite.filename)..".ase"
-
-local args = {
-    sheet = app.image,
-    filename = filename,
-    frametime = .05,
-    size = 64,
-    animationsEnabled = {}
-}
-
-local dialog = Dialog("Import LPC Character")
-dialog:combobox({
-    id = "comboboxSpriteSize",
-    label = "Sprite size",
-    options = {"64", "128", "192"},
-    onchange = function()
-        args.size = tonumber(dialog.data.comboboxSpriteSize)
+local function ImportLPCCharacterDialog(args)
+    local sheet = app.image
+    if sheet.height < NormalSheetHeight or sheet.width < NormalSheetWidth then
+        app.alert("Too small.")
+        return
     end
-})
-dialog:number({
-    id = "numberFrameTime",
-    label = "Frame time (ms)",
-    text = tostring(math.floor(args.frametime * 1000)),
-    decimals = 0,
-    onchange = function()
-        args.frametime = dialog.data.numberFrameTime / 1000
-    end
-})
-dialog:separator({
-    text = "Animations"
-})
-local function enableAnimation(name)
-    args.animationsEnabled[name] = true
 
-    dialog:check({
-        id = "check"..name,
-        text = name,
-        selected = true,
-        onclick = function()
-            args.animationsEnabled[name] = dialog.data["check"..name]
+    local filename = app.fs.filePathAndTitle(app.sprite.filename)..".ase"
+
+    args.sheet = app.image
+    args.filename = filename
+
+    local dialog = Dialog("Import LPC Character")
+    dialog:combobox({
+        id = "comboboxSpriteSize",
+        label = "Sprite size",
+        options = {"64", "128", "192"},
+        option = tostring(args.size),
+        onchange = function()
+            args.size = tonumber(dialog.data.comboboxSpriteSize)
         end
     })
-end
-for _, name in ipairs(Animations) do
-    enableAnimation(name)
+    dialog:number({
+        id = "numberFrameTime",
+        label = "Frame time (ms)",
+        text = tostring(math.floor(args.frametime * 1000)),
+        decimals = 0,
+        onchange = function()
+            args.frametime = dialog.data.numberFrameTime / 1000
+        end
+    })
+    dialog:separator({
+        text = "Animations"
+    })
+    local function enableAnimation(name)
+        dialog:check({
+            id = "check"..name,
+            text = name,
+            selected = args.animationsEnabled[name],
+            onclick = function()
+                args.animationsEnabled[name] = dialog.data["check"..name]
+            end
+        })
+    end
+    for _, name in ipairs(Animations) do
+        enableAnimation(name)
 
+        local animation = Animations[name]
+        local parts = animation.parts
+        if parts then
+            for part in pairs(parts) do
+                enableAnimation(name..part)
+            end
+        end
+        dialog:newrow()
+    end
+    dialog:button({
+        text = "Import",
+        onclick = function()
+            ImportLPCCharacter(args)
+            dialog:close()
+        end
+    })
+    dialog:show()
+end
+
+local animationsEnabled = {}
+for _, name in ipairs(Animations) do
+    animationsEnabled[name] = true
     local animation = Animations[name]
     local parts = animation.parts
     if parts then
         for part in pairs(parts) do
-            enableAnimation(name..part)
+            animationsEnabled[name..part] = true
         end
     end
-    dialog:newrow()
 end
-dialog:button({
-    text = "Import",
-    onclick = function()
-        ImportLPCCharacter(args)
-        dialog:close()
-    end
-})
-dialog:show()
+
+local args = {
+    frametime = .05,
+    size = 64,
+    animationsEnabled = animationsEnabled
+}
+ImportLPCCharacterDialog(args)
