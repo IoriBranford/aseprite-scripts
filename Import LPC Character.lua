@@ -62,6 +62,7 @@ local function ImportLPCCharacter(t)
     -- end
 
     local frameDuration = t.frametime
+    local enabled = t.animationsEnabled
     local sprite = Sprite(spriteSize, spriteSize)
     sprite.filename = t.filename
     local layer = sprite.layers[1]
@@ -89,13 +90,14 @@ local function ImportLPCCharacter(t)
         local parts = animation.parts
         if parts then
             for part, range in pairs(parts) do
-                tag = sprite:newTag(fromFrameNumber + range[1], fromFrameNumber + range[2])
-                tag.name = name..part..dir
+                if enabled[name..part] then
+                    tag = sprite:newTag(fromFrameNumber + range[1], fromFrameNumber + range[2])
+                    tag.name = name..part..dir
+                end
             end
         end
     end
 
-    local enabled = t.animationsEnabled
     app.transaction("Import LPC Character", function()
         for _, basename in ipairs(Animations) do
             local animation = Animations[basename]
@@ -170,17 +172,28 @@ dialog:number({
 dialog:separator({
     text = "Animations"
 })
-for _, name in ipairs(Animations) do
+local function enableAnimation(name)
     args.animationsEnabled[name] = true
 
     dialog:check({
         id = "check"..name,
-        label = name,
+        text = name,
         selected = true,
         onclick = function()
             args.animationsEnabled[name] = dialog.data["check"..name]
         end
     })
+end
+for _, name in ipairs(Animations) do
+    enableAnimation(name)
+
+    local animation = Animations[name]
+    local parts = animation.parts
+    if parts then
+        for part in pairs(parts) do
+            enableAnimation(name..part)
+        end
+    end
     dialog:newrow()
 end
 dialog:button({
