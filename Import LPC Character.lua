@@ -9,10 +9,9 @@
     3 = up
     This makes it easier to convert an angle to a direction number, assuming a standard 2D graphics coordinate system where +X = right and +Y = down.
 
-    For characters with large weapons, the spritesheet may have extra 128x128 or 192x192 animations below the standard ones.
-    Since these animations do not have standard names or positions in the spritesheet, they are imported as loose frames only.
-    First set the correct sprite size (128 or 192) to import these extra frames properly.
-    Then you can manually work with the extra frames after importing, such as inserting them into the proper tags etc.
+    Large weapons may add extra 128x128 or 192x192 animations below the standard ones.
+    Provided you set the sprite size accordingly to 128 or 192, these are simply imported row-by-row as animations extra0, extra1, extra2...
+    It is not currently possible for the script to know if these are walking, attacking, etc. You'll have to work with them manually.
 ]]
 
 ---@class LPCAnimation
@@ -127,21 +126,17 @@ local function ImportLPCCharacter(t)
 
         local extraheight = sheet.height - NormalSheetHeight
         if extraheight >= spriteSize then
-            local extracols = math.floor(sheet.width / spriteSize)
+            ---@type LPCAnimation
+            local extraAnimation = {
+                s = spriteSize,
+                x = 0,
+                y = NormalSheetHeight,
+                w = sheet.width,
+                h = extraheight
+            }
             local extrarows = math.floor(extraheight / spriteSize)
-            local sourceRect = Rectangle(0, NormalSheetHeight, spriteSize, spriteSize)
-            for _ = 1, extrarows do
-                for _ = 1, extracols do
-                    local frame = frames[#frames]
-                    frame.duration = frameDuration
-                    local image = Image(sheet, sourceRect)
-                    sprite:newCel(layer, frame, image)
-
-                    sourceRect.x = sourceRect.x + spriteSize
-                    sprite:newEmptyFrame()
-                end
-                sourceRect.y = sourceRect.y + spriteSize
-                sourceRect.x = 0
+            for i = 0, extrarows-1 do
+                importAnimation("extra", extraAnimation, i, i)
             end
         end
     end)
