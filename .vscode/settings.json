@@ -1,6 +1,6 @@
 {
     "Lua.workspace.library": [
-        "${workspaceRoot}/api"
+        "${3rd}/Aseprite/library"
     ],
     "Lua.diagnostics.globals": [
         "init",
